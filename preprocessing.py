@@ -25,6 +25,7 @@ class Preprocessor:
         date_time = pd.to_datetime(df["start_time"])
         df["time_of_day_sin"] = np.sin(date_time.dt.hour * ((2 * np.pi) / 24))
         df["time_of_day_cos"] = np.cos(date_time.dt.hour * ((2 * np.pi) / 24))
+        return df
 
     def add_time_of_week(self, df):
         """
@@ -35,6 +36,7 @@ class Preprocessor:
                                         ((2 * np.pi) / 7))
         df["time_of_week_cos"] = np.cos(date_time.dt.day_of_week *
                                         ((2 * np.pi) / 7))
+        return df
 
     def add_time_of_year(self, df):
         """
@@ -45,14 +47,52 @@ class Preprocessor:
                                         ((2 * np.pi) / 12))
         df["time_of_year_cos"] = np.cos(date_time.dt.month *
                                         ((2 * np.pi) / 12))
+        return df
+
+    def add_y_24h(self, df):
+        """
+        Adding the target value (y) 24 hours ago
+        """
+        one_day_timesteps = (1 * 24 * 60) // 5
+        df["y_24h"] = df["y"].shift(one_day_timesteps)
+        return df
+
+    def add_y_yesterday(self, df):
+        """
+        Adding the mean y for the previous day
+        """
+        # Converting to datetime
+        df['start_time'] = pd.to_datetime(df['start_time'])
+
+        # Finding the y average for each day, shifting that by one and merging it with the dataframe
+        df = pd.merge_asof(
+            df,
+            df.resample('D', on="start_time")["y"].mean().shift(1),
+            right_index=True,
+            left_on="start_time",
+        )
+        # Renaming columns
+        df = df.rename(columns={"y_x": "y", "y_y": "y_yesterday"})
+        return df
+
+    def add_y_prev(self, df):
+        """
+        Adding the previous recorded y (5-minutes ago)
+        """
+        df["prev_y"] = df["y"].shift(1)
+        return df
 
     def add_features(self, df):
         """
         Adding features
         """
-        self.add_time_of_day(df)
-        self.add_time_of_week(df)
-        self.add_time_of_year(df)
+        df = self.add_time_of_day(df)
+        df = self.add_time_of_week(df)
+        df = self.add_time_of_year(df)
+        df = self.add_y_24h(df)
+        df = self.add_y_yesterday(df)
+        df = self.add_y_prev(df)
+        return df
 
     def preprocessing(self, df):
         """
@@ -73,7 +113,8 @@ class Preprocessor:
             "sys_reg", "flow"
         ]] = self.min_max_scaler.fit_transform(scale_features)
 
-        self.add_features(df)
+        # Adding features after scaling
+        df = self.add_features(df)
 
         return df
 
