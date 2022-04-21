@@ -1,4 +1,3 @@
-from this import d
 import numpy as np
 import pandas as pd
 from scipy.stats.mstats import winsorize
@@ -7,10 +6,12 @@ from sklearn.preprocessing import MinMaxScaler
 
 class Preprocessor:
 
-    def __init__(self, train_path) -> None:
+    def __init__(self, train_path, val_path) -> None:
         self.min_max_scaler = MinMaxScaler()
         self.train_path = train_path
         self.train_df = self.load_dataset(train_path)
+        self.val_path = val_path
+        self.val_df = self.load_dataset(val_path)
 
     def load_dataset(self, filepath):
         """
@@ -79,7 +80,7 @@ class Preprocessor:
         """
         Adding the previous recorded y (5-minutes ago)
         """
-        df["prev_y"] = df["y"].shift(1)
+        df["y_prev"] = df["y"].shift(1)
         return df
 
     def add_features(self, df):
@@ -91,10 +92,11 @@ class Preprocessor:
         df = self.add_time_of_year(df)
         df = self.add_y_24h(df)
         df = self.add_y_yesterday(df)
+        # Adding prev_y last so its always the last column
         df = self.add_y_prev(df)
         return df
 
-    def preprocessing(self, df):
+    def preprocessing_df(self, df):
         """
         Preprocessing the dataset specified
         """
@@ -116,9 +118,31 @@ class Preprocessor:
         # Adding features after scaling
         df = self.add_features(df)
 
+        # Removing rows that contain NaN
+        df = df.dropna()
+
         return df
+
+    def preprocess(self):
+        train_df = self.preprocessing_df(self.train_df)
+        val_df = self.preprocessing_df(self.val_df)
+        return train_df, val_df
+
+    def df_to_x(self, df, seq_len):
+        np_df = df.to_numpy()
+        x = []
+        for i in range(len(np_df) - seq_len):
+            row = [r for r in np_df[i:i + seq_len]]
+            x.append(row)
+        return np.array(x)
+
+    def df_to_y(self, df, seq_len):
+        np_df = df.to_numpy()
+        y = np_df[seq_len:]
+        return np.array(y)
 
 
 if __name__ == "__main__":
-    pp = Preprocessor(train_path="datasets/no1_train.csv")
-    print(pp.preprocessing(pp.train_df))
+    pp = Preprocessor(train_path="datasets/no1_train.csv",
+                      val_path="datasets/no1_validation.csv")
+    train_df, val_df = pp.preprocess()
