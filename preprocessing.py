@@ -7,7 +7,7 @@ from sklearn.preprocessing import MinMaxScaler
 class Preprocessor:
 
     def __init__(self, train_path, val_path) -> None:
-        self.min_max_scaler = MinMaxScaler()
+        self.min_max_scaler = MinMaxScaler(feature_range=(-1, 1))
         self.train_path = train_path
         self.train_df = self.load_dataset(train_path)
         self.val_path = val_path
@@ -19,9 +19,20 @@ class Preprocessor:
         """
         return pd.read_csv(filepath)
 
+    def add_time_of_hour(self, df):
+        """
+        Adding time of hour (minutes)
+        """
+        date_time = pd.to_datetime(df["start_time"])
+        df["time_of_hour_sin"] = np.sin(date_time.dt.minute *
+                                        ((2 * np.pi) / 60))
+        df["time_of_hour_cos"] = np.cos(date_time.dt.minute *
+                                        ((2 * np.pi) / 60))
+        return df
+
     def add_time_of_day(self, df):
         """
-        Adding time of day
+        Adding time of day (hours)
         """
         date_time = pd.to_datetime(df["start_time"])
         df["time_of_day_sin"] = np.sin(date_time.dt.hour * ((2 * np.pi) / 24))
@@ -30,7 +41,7 @@ class Preprocessor:
 
     def add_time_of_week(self, df):
         """
-        Adding time of week
+        Adding time of week (days)
         """
         date_time = pd.to_datetime(df["start_time"])
         df["time_of_week_sin"] = np.sin(date_time.dt.day_of_week *
@@ -41,7 +52,7 @@ class Preprocessor:
 
     def add_time_of_year(self, df):
         """
-        Adding time of year
+        Adding time of year (month)
         """
         date_time = pd.to_datetime(df["start_time"])
         df["time_of_year_sin"] = np.sin(date_time.dt.month *
@@ -87,16 +98,17 @@ class Preprocessor:
         """
         Adding features
         """
+        df = self.add_time_of_hour(df)
         df = self.add_time_of_day(df)
         df = self.add_time_of_week(df)
         df = self.add_time_of_year(df)
         df = self.add_y_24h(df)
-        df = self.add_y_yesterday(df)
+        # df = self.add_y_yesterday(df)
         # Adding prev_y last so its always the last column
         df = self.add_y_prev(df)
         return df
 
-    def preprocessing_df(self, df):
+    def preprocessing_df(self, df, train_df):
         """
         Preprocessing the dataset specified
         """
@@ -110,10 +122,16 @@ class Preprocessor:
             "hydro", "micro", "thermal", "wind", "river", "total", "y",
             "sys_reg", "flow"
         ]]
-        df[[
-            "hydro", "micro", "thermal", "wind", "river", "total", "y",
-            "sys_reg", "flow"
-        ]] = self.min_max_scaler.fit_transform(scale_features)
+        if train_df:
+            df[[
+                "hydro", "micro", "thermal", "wind", "river", "total", "y",
+                "sys_reg", "flow"
+            ]] = self.min_max_scaler.fit_transform(scale_features)
+        else:
+            df[[
+                "hydro", "micro", "thermal", "wind", "river", "total", "y",
+                "sys_reg", "flow"
+            ]] = self.min_max_scaler.transform(scale_features)
 
         # Adding features after scaling
         df = self.add_features(df)
@@ -124,21 +142,21 @@ class Preprocessor:
         return df
 
     def preprocess(self):
-        train_df = self.preprocessing_df(self.train_df)
-        val_df = self.preprocessing_df(self.val_df)
+        train_df = self.preprocessing_df(self.train_df, train_df=True)
+        val_df = self.preprocessing_df(self.val_df, train_df=False)
         return train_df, val_df
 
     def df_to_x(self, df, seq_len):
         np_df = df.to_numpy()
         x = []
-        for i in range(len(np_df) - seq_len):
-            row = [r for r in np_df[i:i + seq_len]]
+        for i in range(len(np_df) - seq_len + 1):
+            row = np_df[i:i + seq_len]
             x.append(row)
         return np.array(x)
 
     def df_to_y(self, df, seq_len):
         np_df = df.to_numpy()
-        y = np_df[seq_len:]
+        y = np_df[seq_len - 1:]
         return np.array(y)
 
 
