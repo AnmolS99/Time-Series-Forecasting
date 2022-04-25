@@ -1,0 +1,20 @@
+X_feat = [
+        "hydro", "micro", "thermal", "wind", "river", "total", "sys_reg",
+        "flow", "time_of_hour_sin", "time_of_hour_cos", "time_of_day_sin",
+        "time_of_day_cos", "time_of_week_sin", "time_of_week_cos",
+        "time_of_year_sin", "time_of_year_cos", "y_24h", "y_prev"
+    ]
+
+* Remark: Using "add_time_of_day_hour" function
+
+ model = tf.keras.Sequential()
+        model.add(tf.keras.layers.InputLayer((self.seq_len, self.num_feat)))
+        model.add(tf.keras.layers.LSTM(64, return_sequences=True))
+        model.add(tf.keras.layers.Dropout(0.20))
+        model.add(tf.keras.layers.LSTM(64, return_sequences=False))
+        model.add(tf.keras.layers.Dropout(0.20))
+        model.add(tf.keras.layers.Dense(32, activation="relu"))
+        model.add(tf.keras.layers.Dense(1, activation="linear"))
+        model.compile(loss=tf.keras.losses.MeanSquaredError(),
+                      optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001))
+        return model
