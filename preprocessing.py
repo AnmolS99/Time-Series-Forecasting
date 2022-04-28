@@ -1,3 +1,4 @@
+import random
 import numpy as np
 import pandas as pd
 from scipy.stats.mstats import winsorize
@@ -218,14 +219,16 @@ class Preprocessor:
 
     def preprocess(self):
         train_df, X_feat = self.preprocessing_df(self.train_df, train_df=True)
-        val_df, _ = self.preprocessing_df(self.val_df, train_df=False)
+        val_df, X_feat = self.preprocessing_df(self.val_df, train_df=False)
         return train_df, val_df, X_feat
 
-    def df_to_x(self, df, seq_len):
+    def df_to_x(self, df, seq_len, noise_percent=0):
         np_df = df.to_numpy()
         x = []
         for i in range(len(np_df) - seq_len + 1):
             row = np_df[i:i + seq_len]
+            if random.random() < noise_percent:
+                row[-1, -1] = random.uniform(-1, 1)
             x.append(row)
         return np.array(x)
 

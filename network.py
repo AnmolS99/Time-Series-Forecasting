@@ -115,7 +115,6 @@ class RNN:
         """
         NB! Assumes that y_prev is the last column
         """
-
         fig, ax = plt.subplots(nrows=2, ncols=math.ceil(num_series / 2))
 
         if random_series:
@@ -150,7 +149,7 @@ if __name__ == "__main__":
     seq_len = 72
     rnn = RNN(seq_len=seq_len, num_feat=len(X_feat))
 
-    train_X = pp.df_to_x(train_df[X_feat], seq_len=seq_len)
+    train_X = pp.df_to_x(train_df[X_feat], seq_len=seq_len, noise_percent=0)
     train_Y = pp.df_to_y(train_df["y"], seq_len=seq_len)
     val_X = pp.df_to_x(val_df[X_feat], seq_len=seq_len)
     val_Y = pp.df_to_y(val_df["y"], seq_len=seq_len)
@@ -158,23 +157,16 @@ if __name__ == "__main__":
     # rnn.train_model(train_X,
     #                 train_Y,
     #                 validation_data=(val_X, val_Y),
-    #                 epochs=7,
-    #                 batch_size=32)
+    #                 epochs=32,
+    #                 batch_size=64)
 
-    rnn.load_model(f"models/model_seq{seq_len}_epochs7_batch32")
+    rnn.load_model(f"models/model_seq{seq_len}_epochs32_batch64")
 
     # rnn.predict_ahead(x=val_X,
     #                   y=val_Y,
     #                   start=0,
     #                   steps_ahead=1,
     #                   show_graphs=True)
-
-    # [
-    #     [y_prev1, y_prev2, y_prev3, y_prev4, y_prev5] 'y_prev6'
-    #     [y_prev2, y_prev3, y_prev4, y_prev5, 'y_prev6'] 'y_prev7'
-    #     [y_prev3, y_prev4, y_prev5, 'y_prev6', 'y_prev7'] 'y_prev8'
-    #     [y_prev4, y_prev5, 'y_prev6', 'y_prev7', 'random_noise'] 'y_prev9'
-    # ]
 
     rnn.predict_multiple_series(x=val_X,
                                 y=val_Y,
