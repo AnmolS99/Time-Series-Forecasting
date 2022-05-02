@@ -3,22 +3,30 @@ import numpy as np
 import pandas as pd
 from scipy.stats.mstats import winsorize
 from sklearn.preprocessing import MinMaxScaler
+from scipy import interpolate
 
 
 class Preprocessor:
 
-    def __init__(self, train_path, val_path) -> None:
+    def __init__(self, train_path, val_path, alt_forcasting=False) -> None:
         self.min_max_scaler = MinMaxScaler(feature_range=(-1, 1))
         self.train_path = train_path
         self.train_df = self.load_dataset(train_path)
         self.val_path = val_path
         self.val_df = self.load_dataset(val_path)
+        self.alt_forcasting = alt_forcasting
 
     def load_dataset(self, filepath):
         """
         Loading in dataset
         """
-        return pd.read_csv(filepath)
+        # Reading the CSV-file
+        df = pd.read_csv(filepath)
+
+        # Flipping the sign of "flow" so it is correct
+        df["flow"] = -df["flow"]
+
+        return df
 
     def add_time_of_hour(self, df):
         """
@@ -41,7 +49,7 @@ class Preprocessor:
         df["min_day_cos"] = np.cos(
             ((date_time.dt.hour * 60) + date_time.dt.minute) *
             ((2 * np.pi) / min_in_day))
-        return df, ["min_day_sin", "min_day_sin"]
+        return df, ["min_day_sin", "min_day_cos"]
 
     def add_time_of_day_hour(self, df):
         """
@@ -148,6 +156,32 @@ class Preprocessor:
         df["y_prev"] = df["y"].shift(1)
         return df, ["y_prev"]
 
+    def add_struct_imbalance(self, df):
+        """
+        Adding structural imbalance as feature
+        """
+        df["load"] = df["total"] + df["flow"]
+        x_load = df["load"].index
+
+        date_time = pd.to_datetime(df["start_time"])
+
+        load_midpoints_y_df = df[date_time.dt.minute == 30]["load"]
+        load_midpoints_x = load_midpoints_y_df.index
+        load_midpoints_y = df[date_time.dt.minute == 30]["load"].to_numpy()
+
+        tck = interpolate.splrep(load_midpoints_x, load_midpoints_y)
+        y_interp = interpolate.splev(x_load, tck)
+
+        df["struct_imb"] = df["load"] - y_interp
+
+        df["y_with_struct_imb"] = df["y"]
+
+        # Removing structural imbalance from y, if altered forecasting
+        if self.alt_forcasting:
+            df["y"] = df["y"] - df["struct_imb"]
+
+        return df
+
     def add_features(self, df):
         """
         Adding features
@@ -188,16 +222,25 @@ class Preprocessor:
         """
         Preprocessing the dataset specified
         """
+        df = self.add_struct_imbalance(df)
+
         # Clamping 1% of the target values (top 0.5% and lower 0.5%)
         y = df["y"]
-        clamped = winsorize(y, limits=[0.005, 0.005])
-        df["y"] = np.array(clamped)
+        y_with_struct_imb = df["y_with_struct_imb"]
+
+        y_clamped = winsorize(y, limits=[0.005, 0.005])
+        y_with_struct_imb_clamped = winsorize(y_with_struct_imb,
+                                              limits=[0.005, 0.005])
+
+        df["y"] = np.array(y_clamped)
+        df["y_with_struct_imb"] = np.array(y_with_struct_imb_clamped)
 
         # Declaring original features that are to be scaled
         original_feat = [
             "hydro", "micro", "thermal", "wind", "river", "total", "y",
-            "sys_reg", "flow"
+            "y_with_struct_imb", "sys_reg", "flow", "struct_imb"
         ]
+
         # Normalizing using a scaler
         scale_features = df[original_feat]
         if train_df:
@@ -211,6 +254,7 @@ class Preprocessor:
 
         X_feat = original_feat + new_feat
         X_feat.remove("y")
+        X_feat.remove("y_with_struct_imb")
 
         # Removing rows that contain NaN
         df = df.dropna()
@@ -227,10 +271,20 @@ class Preprocessor:
         x = []
         for i in range(len(np_df) - seq_len + 1):
             row = np_df[i:i + seq_len]
-            if random.random() < noise_percent:
-                row[-1, -1] = random.uniform(-1, 1)
             x.append(row)
+        x = np.array(x)
+        for i in range(len(x)):
+            if random.random() < noise_percent:
+                x[i, -1, -1] = random.uniform(-1, 1)
         return np.array(x)
+
+    def df_to_y_prev_true(self, df, seq_len):
+        np_df = df.to_numpy()
+        y_prev_true = []
+        for i in range(len(np_df) - seq_len + 1):
+            row = np_df[i:i + seq_len]
+            y_prev_true.append(row)
+        return np.array(y_prev_true)
 
     def df_to_y(self, df, seq_len):
         np_df = df.to_numpy()
@@ -240,5 +294,6 @@ class Preprocessor:
 
 if __name__ == "__main__":
     pp = Preprocessor(train_path="datasets/no1_train.csv",
-                      val_path="datasets/no1_validation.csv")
+                      val_path="datasets/no1_validation.csv",
+                      alt_forcasting=False)
     train_df, val_df, X_feat = pp.preprocess()

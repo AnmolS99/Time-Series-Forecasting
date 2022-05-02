@@ -1,4 +1,4 @@
-model_seq72_epochs32_batch64_first
+model_seq72_epochs32_batch64_1
 
 X_feat = ['hydro', 'micro', 'thermal', 'wind', 'river', 'total', 'sys_reg', 'flow', 'min_day_sin',
  'min_day_cos', 'day_0', 'day_1', 'day_2', 'day_3', 'day_4', 'day_5', 'day_6', 'month_1',

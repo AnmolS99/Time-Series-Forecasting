@@ -17,7 +17,7 @@ class RNN:
     def create_rnn(self):
         model = tf.keras.Sequential()
         model.add(tf.keras.layers.InputLayer((self.seq_len, self.num_feat)))
-        model.add(tf.keras.layers.LSTM(64, return_sequences=True))
+        model.add(tf.keras.layers.LSTM(128, return_sequences=True))
         model.add(tf.keras.layers.Dropout(0.20))
         model.add(tf.keras.layers.LSTM(64, return_sequences=False))
         model.add(tf.keras.layers.Dropout(0.20))
@@ -59,7 +59,15 @@ class RNN:
     def load_model(self, model_path):
         self.model = tf.keras.models.load_model(model_path)
 
-    def predict_ahead(self, x, y, start, steps_ahead, show_graphs=False):
+    def predict_ahead(self,
+                      x,
+                      y_prev_true,
+                      y,
+                      y_with_struct_imb,
+                      start,
+                      steps_ahead,
+                      show_graphs=False,
+                      alt_forecasting=False):
         """
         NB! Assumes that y_prev is the last column
         """
@@ -67,7 +75,7 @@ class RNN:
 
         # First time predicting
         seq = x[[start]]
-        history = seq[0, :, -1]
+        history = y_prev_true[start]
         pred = self.model.predict(seq)
         preds.append(pred.flatten())
         for i in range(start + 1, start + steps_ahead):
@@ -83,11 +91,16 @@ class RNN:
             preds.append(pred.flatten())
 
         last_history = float(history[-1])
-        target = y[start:start + steps_ahead]
+        target = y_with_struct_imb[start:start + steps_ahead]
         target = [last_history] + list(target)
         target = np.array(target, dtype=object)
 
-        preds = [last_history] + preds
+        struct_imb = y_with_struct_imb[start:start +
+                                       steps_ahead] - y[start:start +
+                                                        steps_ahead]
+        preds = np.array(preds).flatten()
+        preds = np.add(preds, struct_imb)
+        preds = np.concatenate(([last_history], preds))
         preds = np.array(preds, dtype=object)
 
         x_history = np.arange(start, start + self.seq_len)
@@ -107,11 +120,14 @@ class RNN:
 
     def predict_multiple_series(self,
                                 x,
+                                y_prev_true,
                                 y,
+                                y_with_struct_imb,
                                 start,
                                 steps_ahead,
                                 num_series,
-                                random_series=True):
+                                random_series=True,
+                                alt_forecasting=False):
         """
         NB! Assumes that y_prev is the last column
         """
@@ -129,7 +145,8 @@ class RNN:
             ]
         for i in range(num_series):
             x_history, history, x_target, target, x_preds, preds = self.predict_ahead(
-                x, y, series_list[i], steps_ahead)
+                x, y_prev_true, y, y_with_struct_imb, series_list[i],
+                steps_ahead, False, alt_forcasting)
             row = i // math.ceil(num_series / 2)
             col = i % math.ceil(num_series / 2)
             ax[row, col].plot(x_history, history)
@@ -143,34 +160,46 @@ class RNN:
 
 
 if __name__ == "__main__":
+    seq_len = 144
+    epochs = 10
+    batch_size = 32
+    alt_forcasting = False
+
     pp = Preprocessor(train_path="datasets/no1_train.csv",
-                      val_path="datasets/no1_validation.csv")
+                      val_path="datasets/no1_validation.csv",
+                      alt_forcasting=alt_forcasting)
     train_df, val_df, X_feat = pp.preprocess()
-    seq_len = 72
     rnn = RNN(seq_len=seq_len, num_feat=len(X_feat))
 
-    train_X = pp.df_to_x(train_df[X_feat], seq_len=seq_len, noise_percent=0)
+    train_X = pp.df_to_x(train_df[X_feat], seq_len=seq_len, noise_percent=0.25)
+    train_Y_prev_true = pp.df_to_y_prev_true(train_df["y_with_struct_imb"],
+                                             seq_len=seq_len)
     train_Y = pp.df_to_y(train_df["y"], seq_len=seq_len)
+    train_Y_with_struct_imb = pp.df_to_y(train_df["y_with_struct_imb"],
+                                         seq_len=seq_len)
+
     val_X = pp.df_to_x(val_df[X_feat], seq_len=seq_len)
+    val_Y_prev_true = pp.df_to_y_prev_true(val_df["y_with_struct_imb"],
+                                           seq_len=seq_len)
     val_Y = pp.df_to_y(val_df["y"], seq_len=seq_len)
+    val_Y_with_struct_imb = pp.df_to_y(val_df["y_with_struct_imb"],
+                                       seq_len=seq_len)
 
-    # rnn.train_model(train_X,
-    #                 train_Y,
-    #                 validation_data=(val_X, val_Y),
-    #                 epochs=32,
-    #                 batch_size=64)
+    rnn.train_model(train_X,
+                    train_Y,
+                    validation_data=(val_X, val_Y),
+                    epochs=epochs,
+                    batch_size=batch_size)
 
-    rnn.load_model(f"models/model_seq{seq_len}_epochs32_batch64")
-
-    # rnn.predict_ahead(x=val_X,
-    #                   y=val_Y,
-    #                   start=0,
-    #                   steps_ahead=1,
-    #                   show_graphs=True)
+    # rnn.load_model(
+    #     f"models/model_seq{seq_len}_epochs{epochs}_batch{batch_size}")
 
     rnn.predict_multiple_series(x=val_X,
+                                y_prev_true=val_Y_prev_true,
                                 y=val_Y,
+                                y_with_struct_imb=val_Y_with_struct_imb,
                                 start=0,
                                 steps_ahead=24,
                                 num_series=6,
-                                random_series=True)
+                                random_series=True,
+                                alt_forecasting=alt_forcasting)
