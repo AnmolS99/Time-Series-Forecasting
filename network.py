@@ -146,7 +146,7 @@ class RNN:
         for i in range(num_series):
             x_history, history, x_target, target, x_preds, preds = self.predict_ahead(
                 x, y_prev_true, y, y_with_struct_imb, series_list[i],
-                steps_ahead, False, alt_forcasting)
+                steps_ahead, False, alt_forecasting)
             row = i // math.ceil(num_series / 2)
             col = i % math.ceil(num_series / 2)
             ax[row, col].plot(x_history, history)
@@ -163,11 +163,11 @@ if __name__ == "__main__":
     seq_len = 144
     epochs = 10
     batch_size = 32
-    alt_forcasting = False
+    alt_forecasting = True
 
     pp = Preprocessor(train_path="datasets/no1_train.csv",
                       val_path="datasets/no1_validation.csv",
-                      alt_forcasting=alt_forcasting)
+                      alt_forecasting=alt_forecasting)
     train_df, val_df, X_feat = pp.preprocess()
     rnn = RNN(seq_len=seq_len, num_feat=len(X_feat))
 
@@ -185,14 +185,14 @@ if __name__ == "__main__":
     val_Y_with_struct_imb = pp.df_to_y(val_df["y_with_struct_imb"],
                                        seq_len=seq_len)
 
-    rnn.train_model(train_X,
-                    train_Y,
-                    validation_data=(val_X, val_Y),
-                    epochs=epochs,
-                    batch_size=batch_size)
+    # rnn.train_model(train_X,
+    #                 train_Y,
+    #                 validation_data=(val_X, val_Y),
+    #                 epochs=epochs,
+    #                 batch_size=batch_size)
 
-    # rnn.load_model(
-    #     f"models/model_seq{seq_len}_epochs{epochs}_batch{batch_size}")
+    rnn.load_model(
+        f"models/model_seq{seq_len}_epochs{epochs}_batch{batch_size}_works")
 
     rnn.predict_multiple_series(x=val_X,
                                 y_prev_true=val_Y_prev_true,
@@ -202,4 +202,4 @@ if __name__ == "__main__":
                                 steps_ahead=24,
                                 num_series=6,
                                 random_series=True,
-                                alt_forecasting=alt_forcasting)
+                                alt_forecasting=alt_forecasting)

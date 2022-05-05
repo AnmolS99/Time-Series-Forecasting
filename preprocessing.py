@@ -8,13 +8,13 @@ from scipy import interpolate
 
 class Preprocessor:
 
-    def __init__(self, train_path, val_path, alt_forcasting=False) -> None:
+    def __init__(self, train_path, val_path, alt_forecasting=False) -> None:
         self.min_max_scaler = MinMaxScaler(feature_range=(-1, 1))
         self.train_path = train_path
         self.train_df = self.load_dataset(train_path)
         self.val_path = val_path
         self.val_df = self.load_dataset(val_path)
-        self.alt_forcasting = alt_forcasting
+        self.alt_forecasting = alt_forecasting
 
     def load_dataset(self, filepath):
         """
@@ -177,7 +177,7 @@ class Preprocessor:
         df["y_with_struct_imb"] = df["y"]
 
         # Removing structural imbalance from y, if altered forecasting
-        if self.alt_forcasting:
+        if self.alt_forecasting:
             df["y"] = df["y"] - df["struct_imb"]
 
         return df
@@ -267,7 +267,7 @@ class Preprocessor:
         return train_df, val_df, X_feat
 
     def df_to_x(self, df, seq_len, noise_percent=0):
-        np_df = df.to_numpy()
+        np_df = df.to_numpy().copy()
         x = []
         for i in range(len(np_df) - seq_len + 1):
             row = np_df[i:i + seq_len]
@@ -295,5 +295,5 @@ class Preprocessor:
 if __name__ == "__main__":
     pp = Preprocessor(train_path="datasets/no1_train.csv",
                       val_path="datasets/no1_validation.csv",
-                      alt_forcasting=False)
+                      alt_forecasting=False)
     train_df, val_df, X_feat = pp.preprocess()
