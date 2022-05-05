@@ -4,10 +4,11 @@ import numpy as np
 import tensorflow as tf
 import random
 
-from preprocessing import Preprocessor
-
 
 class RNN:
+    """
+    Reccurent Neural Network object, containing the model, and operations related to the model
+    """
 
     def __init__(self, seq_len, num_feat) -> None:
         self.seq_len = seq_len
@@ -15,6 +16,9 @@ class RNN:
         self.model = self.create_rnn()
 
     def create_rnn(self):
+        """
+        Creating the RNN
+        """
         model = tf.keras.Sequential()
         model.add(tf.keras.layers.InputLayer((self.seq_len, self.num_feat)))
         model.add(tf.keras.layers.LSTM(128, return_sequences=True))
@@ -33,11 +37,13 @@ class RNN:
                     validation_data,
                     epochs=10,
                     batch_size=32):
-
+        """
+        Training the model (fit) and saving it and the corresponding loss graph
+        """
         # Creating model name
         model_name = f"model_seq{self.seq_len}_epochs{epochs}_batch{batch_size}"
 
-        # Maybe try fitting  with shuffle=True
+        # Fitting the model, and getting the training history
         history = self.model.fit(train_X,
                                  train_Y,
                                  validation_data=validation_data,
@@ -54,9 +60,13 @@ class RNN:
         plt.savefig(f"losses/{model_name}")
         plt.show()
 
+        # Saving the model
         self.model.save(f"models/{model_name}")
 
     def load_model(self, model_path):
+        """
+        Loading an existing model from path
+        """
         self.model = tf.keras.models.load_model(model_path)
 
     def predict_ahead(self,
@@ -66,18 +76,23 @@ class RNN:
                       y_with_struct_imb,
                       start,
                       steps_ahead,
-                      show_graphs=False,
-                      alt_forecasting=False):
+                      show_graphs=False):
         """
-        NB! Assumes that y_prev is the last column
+        Using RNN-model to predict a number of steps ahead
         """
         preds = []
 
         # First time predicting
         seq = x[[start]]
+
+        # Getting the history (y_with_struct_imb for first sequence sent into the model)
         history = y_prev_true[start]
+
+        # Predicting the y for the first sequence
         pred = self.model.predict(seq)
         preds.append(pred.flatten())
+
+        # Predicting further into the future
         for i in range(start + 1, start + steps_ahead):
             seq = x[[i]]
 
@@ -86,19 +101,23 @@ class RNN:
                 y_prev = preds[-j]
                 seq[:, -j, -1] = y_prev
 
+            # Predicting the sequence after changing y_prev from actual value to predicted value
             pred = self.model.predict(seq)
 
             preds.append(pred.flatten())
 
+        # Getting the target values
         last_history = float(history[-1])
         target = y_with_struct_imb[start:start + steps_ahead]
         target = [last_history] + list(target)
         target = np.array(target, dtype=object)
 
+        # Calculating the structural imbalance
         struct_imb = y_with_struct_imb[start:start +
                                        steps_ahead] - y[start:start +
                                                         steps_ahead]
         preds = np.array(preds).flatten()
+        # Adding the strucural imbalance back to our predictions
         preds = np.add(preds, struct_imb)
         preds = np.concatenate(([last_history], preds))
         preds = np.array(preds, dtype=object)
@@ -116,6 +135,7 @@ class RNN:
             plt.legend()
             plt.show()
 
+        # Returning history, target and predictions
         return x_history, history, x_target, target, x_preds, preds
 
     def predict_multiple_series(self,
@@ -129,7 +149,7 @@ class RNN:
                                 random_series=True,
                                 alt_forecasting=False):
         """
-        NB! Assumes that y_prev is the last column
+        Predicting multiple times using predict_ahead()
         """
         fig, ax = plt.subplots(nrows=2, ncols=math.ceil(num_series / 2))
 
@@ -143,10 +163,11 @@ class RNN:
             series_list = [
                 start + (i * steps_ahead) for i in range(num_series)
             ]
+        # Predicting multiple times and plotting the results
         for i in range(num_series):
             x_history, history, x_target, target, x_preds, preds = self.predict_ahead(
                 x, y_prev_true, y, y_with_struct_imb, series_list[i],
-                steps_ahead, False, alt_forecasting)
+                steps_ahead, False)
             row = i // math.ceil(num_series / 2)
             col = i % math.ceil(num_series / 2)
             ax[row, col].plot(x_history, history)
@@ -154,52 +175,49 @@ class RNN:
             ax[row, col].plot(x_preds, preds)
             ax[row, col].set_title(f"Series {i}")
 
+        # Adding legend
         fig.legend(["history", "target", "predictions"], loc="upper right")
 
+        # Showing the plots
         plt.show()
 
+    def predict_one_ahead(self, x, y, y_with_struct_imb, start, steps_ahead):
+        """
+        Using RNN-model to predict a number one steps ahead multiple times
+        """
+        preds = []
 
-if __name__ == "__main__":
-    seq_len = 144
-    epochs = 10
-    batch_size = 32
-    alt_forecasting = True
+        # First time predicting
+        seq = x[[start]]
 
-    pp = Preprocessor(train_path="datasets/no1_train.csv",
-                      val_path="datasets/no1_validation.csv",
-                      alt_forecasting=alt_forecasting)
-    train_df, val_df, X_feat = pp.preprocess()
-    rnn = RNN(seq_len=seq_len, num_feat=len(X_feat))
+        # Predicting the y for the first sequence
+        pred = self.model.predict(seq)
+        preds.append(pred.flatten())
 
-    train_X = pp.df_to_x(train_df[X_feat], seq_len=seq_len, noise_percent=0.25)
-    train_Y_prev_true = pp.df_to_y_prev_true(train_df["y_with_struct_imb"],
-                                             seq_len=seq_len)
-    train_Y = pp.df_to_y(train_df["y"], seq_len=seq_len)
-    train_Y_with_struct_imb = pp.df_to_y(train_df["y_with_struct_imb"],
-                                         seq_len=seq_len)
+        # Predicting further into the future
+        for i in range(start + 1, start + steps_ahead):
+            seq = x[[i]]
 
-    val_X = pp.df_to_x(val_df[X_feat], seq_len=seq_len)
-    val_Y_prev_true = pp.df_to_y_prev_true(val_df["y_with_struct_imb"],
-                                           seq_len=seq_len)
-    val_Y = pp.df_to_y(val_df["y"], seq_len=seq_len)
-    val_Y_with_struct_imb = pp.df_to_y(val_df["y_with_struct_imb"],
-                                       seq_len=seq_len)
+            # Predicting the sequence after changing y_prev from actual value to predicted value
+            pred = self.model.predict(seq)
 
-    # rnn.train_model(train_X,
-    #                 train_Y,
-    #                 validation_data=(val_X, val_Y),
-    #                 epochs=epochs,
-    #                 batch_size=batch_size)
+            preds.append(pred.flatten())
 
-    rnn.load_model(
-        f"models/model_seq{seq_len}_epochs{epochs}_batch{batch_size}_works")
+        # Getting the target values
+        target = y_with_struct_imb[start:start + steps_ahead]
+        target = list(target)
+        target = np.array(target, dtype=object)
 
-    rnn.predict_multiple_series(x=val_X,
-                                y_prev_true=val_Y_prev_true,
-                                y=val_Y,
-                                y_with_struct_imb=val_Y_with_struct_imb,
-                                start=0,
-                                steps_ahead=24,
-                                num_series=6,
-                                random_series=True,
-                                alt_forecasting=alt_forecasting)
+        # Calculating the structural imbalance
+        struct_imb = y_with_struct_imb[start:start +
+                                       steps_ahead] - y[start:start +
+                                                        steps_ahead]
+        preds = np.array(preds).flatten()
+        # Adding the strucural imbalance back to our predictions
+        preds = np.add(preds, struct_imb)
+        preds = np.array(preds, dtype=object)
+
+        plt.plot(target, label="target")
+        plt.plot(preds, label="predictions")
+        plt.legend()
+        plt.show()

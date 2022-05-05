@@ -7,8 +7,17 @@ from scipy import interpolate
 
 
 class Preprocessor:
+    """
+    Preprocessing object, performing the following actions:
+        - Loading data
+        - Preprocessing
+        - Feature engineering
+        - Converting pd DataFrames to np arrays
+    """
 
     def __init__(self, train_path, val_path, alt_forecasting=False) -> None:
+        # MinMaxScaler, normalizing data to the range of -1 to 1. The range matches with
+        # the sine and cosine features.
         self.min_max_scaler = MinMaxScaler(feature_range=(-1, 1))
         self.train_path = train_path
         self.train_df = self.load_dataset(train_path)
@@ -23,7 +32,7 @@ class Preprocessor:
         # Reading the CSV-file
         df = pd.read_csv(filepath)
 
-        # Flipping the sign of "flow" so it is correct
+        # Flipping the sign of "flow" to fix error in data
         df["flow"] = -df["flow"]
 
         return df
@@ -73,7 +82,7 @@ class Preprocessor:
 
     def add_time_of_week_one_hot(self, df):
         """
-        Adding time of week (days)
+        Adding time of week (days) as one-hot encodings
         """
         date_time = pd.to_datetime(df["start_time"])
         df["day_week"] = "day_" + date_time.dt.day_of_week.astype(str)
@@ -103,7 +112,7 @@ class Preprocessor:
 
     def add_time_of_year_one_hot(self, df):
         """
-        Adding time of year (months)
+        Adding time of year (months) as one-hot encodings
         """
         date_time = pd.to_datetime(df["start_time"])
         df["month_year"] = "month_" + date_time.dt.month.astype(str)
@@ -160,20 +169,29 @@ class Preprocessor:
         """
         Adding structural imbalance as feature
         """
+        # Calculating the load/net power
         df["load"] = df["total"] + df["flow"]
         x_load = df["load"].index
 
+        # Converting "start_time" to a datetime object
         date_time = pd.to_datetime(df["start_time"])
 
+        # Finding the load values between hours
         load_midpoints_y_df = df[date_time.dt.minute == 30]["load"]
+        # Getting the x-values for the load values between hours
         load_midpoints_x = load_midpoints_y_df.index
+        # Converting the load values between hours to numpy array
         load_midpoints_y = df[date_time.dt.minute == 30]["load"].to_numpy()
 
+        # Getting the coefficients of the approximation spline given by the load y- and x-values
         tck = interpolate.splrep(load_midpoints_x, load_midpoints_y)
+        # Getting all y/load-values for all points given the coefficients for the approx. spline
         y_interp = interpolate.splev(x_load, tck)
 
+        # Calculating structual imbalance
         df["struct_imb"] = df["load"] - y_interp
 
+        # Adding y with structural imbalance as a feature
         df["y_with_struct_imb"] = df["y"]
 
         # Removing structural imbalance from y, if altered forecasting
@@ -186,6 +204,7 @@ class Preprocessor:
         """
         Adding features
         """
+        # List of new features
         new_feat = []
 
         # df, feat_list = self.add_time_of_hour(df)
@@ -220,11 +239,12 @@ class Preprocessor:
 
     def preprocessing_df(self, df, train_df):
         """
-        Preprocessing the dataset specified
+        Preprocessing the dataset
         """
+        # Adding structural imbalance as a feature. If altered_forecasting is True, remove struct_imb from y.
         df = self.add_struct_imbalance(df)
 
-        # Clamping 1% of the target values (top 0.5% and lower 0.5%)
+        # Clamping 1% of the target values, both y and y_with_struct_imb (top 0.5% and lower 0.5%)
         y = df["y"]
         y_with_struct_imb = df["y_with_struct_imb"]
 
@@ -241,17 +261,20 @@ class Preprocessor:
             "y_with_struct_imb", "sys_reg", "flow", "struct_imb"
         ]
 
-        # Normalizing using a scaler
+        # Normalizing using a MinMax-scaler
         scale_features = df[original_feat]
+        # Fitting the scaler on train df, and transforming/normalizing
         if train_df:
             df[original_feat] = self.min_max_scaler.fit_transform(
                 scale_features)
+        # Transforming/normalizing on valid set
         else:
             df[original_feat] = self.min_max_scaler.transform(scale_features)
 
-        # Adding features after scaling
+        # Adding new features after scaling
         df, new_feat = self.add_features(df)
 
+        # Removing target from list of features to use in X
         X_feat = original_feat + new_feat
         X_feat.remove("y")
         X_feat.remove("y_with_struct_imb")
@@ -262,11 +285,21 @@ class Preprocessor:
         return df, X_feat
 
     def preprocess(self):
+        """
+        Preprocessing train and valid dataframes
+        """
         train_df, X_feat = self.preprocessing_df(self.train_df, train_df=True)
         val_df, X_feat = self.preprocessing_df(self.val_df, train_df=False)
         return train_df, val_df, X_feat
 
     def df_to_x(self, df, seq_len, noise_percent=0):
+        """
+        Converting x-DataFrame to np array of sequences:
+        [[t1, t2, t3, t4, t5],
+        [t2, t3, t4, t5, t6],
+        [t3, t4, t5, t6, t7]]
+        Also adding a percentage of noise to the very last prev_y
+        """
         np_df = df.to_numpy().copy()
         x = []
         for i in range(len(np_df) - seq_len + 1):
@@ -279,6 +312,9 @@ class Preprocessor:
         return np.array(x)
 
     def df_to_y_prev_true(self, df, seq_len):
+        """
+        Similar to df_to_x, but only returns a np array of actual y_prev values (with struct imb)
+        """
         np_df = df.to_numpy()
         y_prev_true = []
         for i in range(len(np_df) - seq_len + 1):
@@ -287,13 +323,9 @@ class Preprocessor:
         return np.array(y_prev_true)
 
     def df_to_y(self, df, seq_len):
+        """
+        Converts DataFrame to target-values related to the sequences in df_to_x
+        """
         np_df = df.to_numpy()
         y = np_df[seq_len - 1:]
         return np.array(y)
-
-
-if __name__ == "__main__":
-    pp = Preprocessor(train_path="datasets/no1_train.csv",
-                      val_path="datasets/no1_validation.csv",
-                      alt_forecasting=False)
-    train_df, val_df, X_feat = pp.preprocess()

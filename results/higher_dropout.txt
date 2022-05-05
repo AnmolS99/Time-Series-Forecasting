@@ -1,0 +1,3 @@
+* 0.30 Dropout
+
+* Worse results than 0.20 Dropout
