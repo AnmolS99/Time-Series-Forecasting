@@ -13,21 +13,21 @@ The datasets includes production plans and historical imbalance data for east No
 ![Electricity prices](images/electricityPriceArea.png)
 
 The datasets contain the following features:
-• start time: The timestamp of each datum.
-• hydro: The planned reservoir hydropower production at the time step.
-• micro: The planned small-scale hydropower production at the time step.
-• river: The planned run-of-river hydropower production at the time step.
-• thermal: The planned thermal power plant production at the time step.
-• wind: The planned wind power plant production at the time step.
-2
-• total: The total planned production at the time step. Equal to the sum of the listed ”planned production”
-features.
-• sys reg: The planned ”system regulation” at the time step: activation of balancing services to accommodate
-specific needs (e.g. bottlenecks) in the power system.
-• flow: The planned total power flow in or out of the current area of the grid at the time step. At any moment,
-power flows between connected bidding areas. This value is the net power flow from the current area, i.e.
-positive numbers indicate export and negative numbers indicate import.
-• y: The target variable that you train your network to predict. The estimated ”open loop” power
-grid imbalance at the time step. Think of this as the imbalance, per area, that would have occurred if balancing
-services were not activated. It is not possible to observe this value directly, thus it has to be estimated using
-other measurements of the power grid.
+
+- start time: The timestamp of each datum.
+- hydro: The planned reservoir hydropower production at the time step.
+- micro: The planned small-scale hydropower production at the time step.
+- river: The planned run-of-river hydropower production at the time step.
+- thermal: The planned thermal power plant production at the time step.
+- wind: The planned wind power plant production at the time step.
+- total: The total planned production at the time step. Equal to the sum of the listed ”planned production”
+  features.
+- sys reg: The planned ”system regulation” at the time step: activation of balancing services to accommodate
+  specific needs (e.g. bottlenecks) in the power system.
+- flow: The planned total power flow in or out of the current area of the grid at the time step. At any moment,
+  power flows between connected bidding areas. This value is the net power flow from the current area, i.e.
+  positive numbers indicate export and negative numbers indicate import.
+- y: The target variable. The estimated ”open loop” power
+  grid imbalance at the time step. Can be thought of as the imbalance, per area, that would have occurred if balancing
+  services were not activated. It is not possible to observe this value directly, thus it has to be estimated using
+  other measurements of the power grid.
