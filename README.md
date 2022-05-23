@@ -20,14 +20,7 @@ The datasets contain the following features:
 - river: The planned run-of-river hydropower production at the time step.
 - thermal: The planned thermal power plant production at the time step.
 - wind: The planned wind power plant production at the time step.
-- total: The total planned production at the time step. Equal to the sum of the listed ”planned production”
-  features.
-- sys reg: The planned ”system regulation” at the time step: activation of balancing services to accommodate
-  specific needs (e.g. bottlenecks) in the power system.
-- flow: The planned total power flow in or out of the current area of the grid at the time step. At any moment,
-  power flows between connected bidding areas. This value is the net power flow from the current area, i.e.
-  positive numbers indicate export and negative numbers indicate import.
-- y: The target variable. The estimated ”open loop” power
-  grid imbalance at the time step. Can be thought of as the imbalance, per area, that would have occurred if balancing
-  services were not activated. It is not possible to observe this value directly, thus it has to be estimated using
-  other measurements of the power grid.
+- total: The total planned production at the time step. Equal to the sum of the listed ”planned production” features.
+- sys reg: The planned ”system regulation” at the time step: activation of balancing services to accommodate specific needs (e.g. bottlenecks) in the power system.
+- flow: The planned total power flow in or out of the current area of the grid at the time step.
+- y: The target variable. The estimated ”open loop” power grid imbalance at the time step. Can be thought of as the imbalance, per area, that would have occurred if balancing services were not activated. It is not possible to observe this value directly, thus it has to be estimated using other measurements of the power grid.
