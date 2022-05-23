@@ -69,5 +69,5 @@ if __name__ == '__main__':
     main(seq_len=144,
          epochs=10,
          batch_size=32,
-         alt_forecasting=False,
+         alt_forecasting=True,
          train_model=False)
