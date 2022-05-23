@@ -1,5 +1,3 @@
 model_seq144_epochs10_batch32_works
 
-Fixed noise bug
-
-* Without altered forecasting
+* Without altered forecasting, after a bug with adding noise to y_prev was fixed. Results seem to be more stable

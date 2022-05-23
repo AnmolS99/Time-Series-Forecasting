@@ -1,11 +1,3 @@
 model_seq144_epochs30_batch32_works
 
-* Remark: Train_X (df_to_x) noise_percent=0.25
-
-* Maybe too conservative with its estimates?
-
-X_feat same as previously
-
-Model same as previously
-
-* Added noise_percent, so that the very last y_prev could be subtituted when predicting. Also training for very long.
+* Added noise_percent, so that the very last y_prev could be subtituted with random noise when predicting. Set this to 25%. Also trained for many epochs. Maybe too conservative with its estimates?
