@@ -1,6 +1,6 @@
 # Time Series Forecasting 📈
 
-This project was part of the Deep Learning (IT3030) course at NTNU spring 2022. The goal of this project was to use time series prediction by training a RNN model to predict transmission system imbalance.
+This project was part of the Deep Learning (IT3030) course at NTNU spring 2022. The goal of this project was to perform time series prediction by training a RNN model to predict electric power grid transmission system imbalance.
 
 ## Installation 📦
 
