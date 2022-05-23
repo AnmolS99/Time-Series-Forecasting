@@ -10,7 +10,7 @@ To install required packages, use the following command: `pip install -r require
 
 The datasets includes production plans and historical imbalance data for east Norway (NO1 area in the figure below).
 
-<img src="images/electricityPriceArea.png" alt="drawing" width="200"/>
+<img src="images/electricityPriceArea.png" alt="drawing" width="300"/>
 
 The datasets contain the following features:
 
