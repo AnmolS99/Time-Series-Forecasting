@@ -1,6 +1,6 @@
 # Time Series Forecasting 📈
 
-This project was part of the Deep Learning (IT3030) course at NTNU spring 2022. The goal of this project was to use time series forecasting to predict transmission system imbalance.
+This project was part of the Deep Learning (IT3030) course at NTNU spring 2022. The goal of this project was to use time series prediction by training a RNN model to predict transmission system imbalance.
 
 ## Installation 📦
 
@@ -32,3 +32,21 @@ The datasets contain the following features:
 
 ## Results
 The results of my experiments with different hyperparameters and features can be found in the [results](results) folder. The folder contains the results and corresponding .txt file explaining the changes made and results.
+
+**Predictions of the model without altered forecasting:**
+
+<img src="images/no_alt_forecasting_results.png" alt="drawing" width="600"/>
+
+**Predictions of the model with altered forecasting:**
+
+<img src="images/alt_forecasting_result.png" alt="drawing" width="600"/>
+
+The models seems to perform best when there are oscillations, and have tendencies to diverge when there are no significant variations. This was expected because of reinforcement of existing bias. Altered forecasting seem to improve the performance.
+
+## Future Work
+Future work would concern improving the performance of RNN model.
+
+**Suggestions to improve performance:**
+- Adding new features based on external data e.g. weather data.
+- Tune hyperparameters even more.
+- Modify the network architecture.
