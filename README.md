@@ -30,7 +30,7 @@ The datasets contain the following features:
 - *flow*: The planned total power flow in or out of the current area of the grid at the time step.
 - *y*: The target variable. The estimated ”open loop” power grid imbalance at the time step. Can be thought of as the imbalance, per area, that would have occurred if balancing services were not activated. It is not possible to observe this value directly, thus it has to be estimated using other measurements of the power grid.
 
-## Results
+## Results ✅
 The results of my experiments with different hyperparameters and features can be found in the [results](results) folder. The folder contains the results and corresponding .txt file explaining the changes made and results.
 
 **Predictions of the model without altered forecasting:**
@@ -43,7 +43,7 @@ The results of my experiments with different hyperparameters and features can be
 
 The models seems to perform best when there are oscillations, and have tendencies to diverge when there are no significant variations. This was expected because of reinforcement of existing bias. Altered forecasting seem to improve the performance.
 
-## Future Work
+## Future Work 🚀
 Future work would concern improving the performance of RNN model.
 
 **Suggestions to improve performance:**
