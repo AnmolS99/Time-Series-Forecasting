@@ -4,7 +4,7 @@ This project was part of the Deep Learning (IT3030) course at NTNU spring 2022. 
 
 ## Installation 📦
 
-To install required packages, use the following command: `pip install -r requirements.txt`
+To install the required packages, use the following command: `pip install -r requirements.txt`
 
 ## Running model
 You can run the basic model, by running main.py: `python main.py`.
