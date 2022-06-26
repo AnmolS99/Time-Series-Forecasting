@@ -42,7 +42,7 @@ The results of my experiments with different hyperparameters and features can be
 
 The models seems to perform best when there are oscillations, and have tendencies to diverge when there are no significant variations. This was expected because of reinforcement of existing bias. Altered forecasting seem to improve the performance.
 
-## Future Work 🚀
+## Future work 🚀
 Future work would concern improving the performance of RNN model.
 
 **Suggestions to improve performance:**
