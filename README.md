@@ -2,15 +2,6 @@
 
 This project was part of the Deep Learning (IT3030) course at NTNU spring 2022. The goal of this project was to perform time series prediction by training a RNN model to predict electric power grid transmission system imbalance.
 
-## Installation 📦
-
-To install the required packages, use the following command: `pip install -r requirements.txt`
-
-## Running model
-You can run the basic model, by running main.py: `python main.py`.
-To train a model, change the parameters or run a model trained on altered forecasting, you can change the parameters in the main function in main.py.
-
-
 ## Datasets
 
 The datasets includes production plans and historical imbalance data for east Norway (NO1 area in the figure below).
@@ -29,6 +20,14 @@ The datasets contain the following features:
 - *sys reg*: The planned ”system regulation” at the time step: activation of balancing services to accommodate specific needs (e.g. bottlenecks) in the power system.
 - *flow*: The planned total power flow in or out of the current area of the grid at the time step.
 - *y*: The target variable. The estimated ”open loop” power grid imbalance at the time step. Can be thought of as the imbalance, per area, that would have occurred if balancing services were not activated. It is not possible to observe this value directly, thus it has to be estimated using other measurements of the power grid.
+
+## Installation 📦
+
+To install the required packages, use the following command: `pip install -r requirements.txt`
+
+## Running model
+You can run the basic model, by running main.py: `python main.py`.
+To train a model, change the parameters or run a model trained on altered forecasting, you can change the parameters in the main function in main.py.
 
 ## Results ✅
 The results of my experiments with different hyperparameters and features can be found in the [results](results) folder. The folder contains the results and corresponding .txt file explaining the changes made and results.
