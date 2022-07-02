@@ -46,6 +46,6 @@ The models seems to perform best when there are oscillations, and have tendencie
 Future work would concern improving the performance of RNN model.
 
 **Suggestions to improve performance:**
-- Adding new features based on external data e.g. weather data.
-- Tune hyperparameters even more.
-- Modify the network architecture.
+* **Adding new features based on external data**: To improve accuracy. External data could for example be weather data.
+* **Tune hyperparameters even more**: To increase accuracy of predictions.
+* **Modify the network architecture**: To increase accuracy of predictions, by reducing overfitting/underfitting.
